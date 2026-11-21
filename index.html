@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Scan simulator and graph risk tester</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600&display=swap">
+<style>
+:root{--bg:#f3f5f8;--panel:#fff;--ink:#14213d;--mut:#5b6678;--grid:#dde2ea;--line:#c8cfdb;--acc:#14213d;--accfg:#fff;--ok:#14946a;--md:#c77a14;--hi:#d4434b;--c1:#2f6fed;--c2:#14946a;--c3:#d9822b;--c4:#9b4fd0;--c5:#d4434b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1522;--panel:#16203a;--ink:#e8edf7;--mut:#9aa6bd;--grid:#26324f;--line:#33415f;--acc:#e8edf7;--accfg:#0e1522;--ok:#3fcf9f;--md:#f0a458;--hi:#ff7b83;--c1:#6b9bff;--c2:#3fcf9f;--c3:#f0a458;--c4:#c08ae8;--c5:#ff7b83;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1522;--panel:#16203a;--ink:#e8edf7;--mut:#9aa6bd;--grid:#26324f;--line:#33415f;--acc:#e8edf7;--accfg:#0e1522;--ok:#3fcf9f;--md:#f0a458;--hi:#ff7b83;--c1:#6b9bff;--c2:#3fcf9f;--c3:#f0a458;--c4:#c08ae8;--c5:#ff7b83;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Instrument Sans",system-ui,sans-serif}
+main{max-width:940px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:24px;margin:0 0 4px}
+p.lede{margin:0 0 14px;color:var(--mut);max-width:66ch}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tabs button{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 12px;border-radius:8px;font:inherit;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+label{display:flex;flex-direction:column;font-size:13px;color:var(--mut);gap:3px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%}
+textarea{font:12.5px/1.45 ui-monospace,Menlo,monospace;min-height:150px}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+button.b{font:inherit;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid var(--acc);background:var(--acc);color:var(--accfg)}
+button.b.alt{background:transparent;color:var(--ink);border-color:var(--line)}
+#status{color:var(--mut);font-size:13px}
+canvas{width:100%;display:block}
+h2{font-size:14px;margin:0 0 6px;font-weight:600}
+.tw{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:5px 10px;text-align:left;border-bottom:1px solid var(--grid)}
+th{position:sticky;top:0;background:var(--panel)}
+.n{text-align:right}
+.leg,.chk{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;margin-top:8px}
+.leg{padding:0 8px}
+.leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+.chk label{flex-direction:row;align-items:center;gap:6px;color:var(--ink)}
+.chk input{width:auto}
+small{color:var(--mut)}
+.score{display:flex;gap:16px;align-items:center}
+.big{font-size:46px;font-weight:600;line-height:1}
+.tag{color:#fff;padding:2px 8px;border-radius:6px;font-size:12.5px}
+.fl{margin:12px 0 0;padding-left:18px}.fl li{margin-bottom:4px}
+.ck span{display:flex;align-items:center;gap:6px;color:var(--ink)}.ck input{width:auto}
+.pos{color:var(--ok)}.neg{color:var(--hi)}
+#pnote{font-size:13px;color:var(--mut);margin-top:8px}#pnote b{color:var(--ink)}
+.sec{border-top:1px solid var(--line);margin-top:16px;padding-top:12px}
+.sec ul{margin:6px 0;padding-left:18px}.sec li{margin-bottom:5px}
+details{margin-top:12px}summary{cursor:pointer;font-weight:600;font-size:14px}
+#tout{min-height:160px;margin-top:8px}
+.gapb[hidden]{display:none}
+.chk span:first-child{color:var(--mut)}
+/* graph cards: CR Mod POV (dark) is the default, .reg is the regular graph */
+.crc{background:#1c1c1e;color:#e9eaee;border-radius:14px;padding:12px 8px 8px;margin-bottom:12px;position:relative}
+.crh{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:0 8px;font-weight:600;font-size:14px}
+.hctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.rd{min-height:20px;padding:2px 8px 0;font-size:12.5px;color:#b4b6ba}
+.cc1{height:clamp(250px,46vh,440px);touch-action:pan-y}.cc2{height:clamp(110px,18vh,170px);touch-action:pan-y}
+.seg{display:inline-flex;background:#2c2c2e;border-radius:9px;padding:2px}
+.seg button{font:inherit;font-size:12.5px;border:0;background:transparent;color:#b4b6ba;padding:5px 10px;border-radius:7px;cursor:pointer}
+.seg button[aria-pressed=true]{background:#e9eaee;color:#1c1c1e}
+.xb{font:inherit;font-size:14px;line-height:1;border:0;background:#2c2c2e;color:#e9eaee;border-radius:8px;padding:7px 10px;cursor:pointer}
+.crc.reg{background:var(--panel);color:var(--ink);border:1px solid var(--line);padding:14px}
+.crc.reg .seg,.crc.reg .xb{background:var(--bg)}.crc.reg .xb{color:var(--ink);border:1px solid var(--line)}
+.crc.reg .seg button{color:var(--mut)}.crc.reg .seg button[aria-pressed=true]{background:var(--acc);color:var(--accfg)}
+.crc.reg .cc1{height:290px;touch-action:auto}.crc.reg .cc2{height:170px;touch-action:auto}.crc.reg .rd{color:var(--mut)}
+/* expanded view */
+.ov{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);padding:max(10px,env(safe-area-inset-top,0px)) 10px max(10px,env(safe-area-inset-bottom,0px));overflow:auto}
+.ov[hidden]{display:none}
+.ov .crc{max-width:1500px;margin:0 auto}
+#oc1{height:max(260px,calc(100dvh - 330px))}#oc2{height:190px}
+.ov .sub{margin-top:10px}
+</style></head><body><main>
+<h1>Scan simulator and graph risk tester</h1>
+<p class="lede">Run the five preset shapes through a scanner, then paste a clipper’s scan log and see how close it sits to each preset, with a bot score and flags.</p>
+<div class="tabs" id="tabs" role="tablist"></div>
+<div class="panel" id="ctlpanel">
+<div class="ctl">
+<label>Scans<input id="n" type="number" min="10" max="1500"></label>
+<label>Interval (minutes)<input id="m" type="number" min="5" max="720"></label>
+<label>Total views<select id="tot"><option value="5000">5,000</option><option value="10000">10,000</option></select></label>
+<label>Growth window<select id="win"><option value="0">Whole run</option><option value="720">12 hours</option><option value="1440">1 day</option><option value="4320">3 days</option><option value="10080">7 days</option><option value="21600">15 days</option></select></label>
+<label>Scan noise (%)<input id="noise" type="number" min="0" max="30"></label>
+<label>First scan at<input id="start" type="datetime-local" value="2026-10-03T01:38"></label>
+</div>
+<div class="btns"><button class="b" id="run">Run scanner</button><button class="b alt" id="inst">Show all scans</button><button class="b alt" id="csv">Download CSV</button><span id="status"></span></div>
+<small>Choosing a growth window sets the run to the window plus 25% plateau. Views are flat after the window ends.</small>
+</div>
+<div class="panel" id="tp" style="display:none">
+<h2>Test a clipper’s graph</h2>
+<small>Paste the scan log from your tracker. Both layouts work: one scan per line (<code>12, 148, Nov 20, 08:34 AM</code>), or your tracker’s block layout with scan number, time, <code>+views</code> and <code>=total</code> on separate lines. Times without AM/PM are read in time order.</small>
+<textarea id="paste" spellcheck="false" placeholder="1&#10;Nov 20, 1:00&#10;+500&#10;=500&#10;2&#10;Nov 20, 1:24&#10;+120&#10;=620"></textarea>
+<div class="ctl" style="margin-top:10px">
+<label>Compare head to head with<select id="tgt"></select></label>
+<label class="ck"><span><input type="checkbox" id="base"> Scan 1 is the starting count</span><small>Views that existed before tracking began. Ticked automatically when scan 1 is much bigger than the rest.</small></label>
+</div>
+<div class="btns"><button class="b" id="score">Score and compare</button>
+<select id="smp" style="width:auto"><option value="">Fill a test sample…</option><option value="ex">Sample: Nov 20 clip (10K, your tracker format)</option></select><button class="b alt" id="clr">Clear</button></div>
+<div id="pnote"></div>
+<div class="chk" id="chk"><span>Also draw:</span></div>
+<div id="res" style="margin-top:14px"></div>
+</div>
+<div class="crc"><div class="crh"><span id="t1">Cumulative views</span><div class="hctl">
+<div class="seg" role="group" aria-label="Graph style"><button data-pov="cr" title="Content Rewards Mod POV">CR Mod POV</button><button data-pov="reg" title="Regular graph">Regular</button></div>
+<div class="seg" role="group" aria-label="What to plot"><button data-met="cum">Cumulative</button><button data-met="per">Per scan</button><button data-met="rate">Per hour</button><button data-met="gap" class="gapb">Gap</button></div>
+<button class="xb" data-exp title="Expanded view" aria-label="Expanded view">⤢</button></div></div>
+<div class="rd" id="rd"></div><canvas id="c1" class="cc1"></canvas><div class="leg" id="leg"></div></div>
+<div class="crc" id="b2"><div class="crh"><span id="t2">Views added per scan</span><div class="hctl"><button class="xb" data-exp title="Expanded view" aria-label="Expanded view">⤢</button></div></div><canvas id="c2" class="cc2"></canvas></div>
+<div class="panel" id="p3"><h2>Scan log</h2><div class="tw"><table><thead><tr><th class="n">SCANS</th><th class="n">views add recorded</th><th>time captured</th><th class="n">cumulative views</th></tr></thead><tbody id="tb"></tbody></table></div>
+<small>Synthetic practice data from a simulator. Not real campaign activity; don’t use it as evidence.</small></div>
+</main>
+<div class="ov" id="ov" hidden role="dialog" aria-modal="true" aria-label="Expanded graph"><div class="crc">
+<div class="crh"><span id="ot1"></span><div class="hctl">
+<div class="seg" role="group" aria-label="Graph style"><button data-pov="cr">CR Mod POV</button><button data-pov="reg">Regular</button></div>
+<div class="seg" role="group" aria-label="What to plot"><button data-met="cum">Cumulative</button><button data-met="per">Per scan</button><button data-met="rate">Per hour</button><button data-met="gap" class="gapb">Gap</button></div>
+<button class="xb" id="ox" title="Close (Esc)" aria-label="Close expanded view">✕</button></div></div>
+<div class="rd" id="ord"></div><canvas id="oc1"></canvas><div class="leg" id="oleg"></div>
+<div class="sub" id="ob2"><div class="crh"><span id="ot2"></span></div><canvas id="oc2"></canvas></div>
+</div></div>
+<script>
+/*PURE*/
+const NM=['straightguy','perfectcurve','staircase','imperfect curve','climbing line'];
+const P=[[0,1200,2300,3300,4200,5100,5900,6700,7400,8000,8600,9100,9500],[0,3000,5200,6600,7500,8100,8600,9100,9500,9750,9900,9980,10050],[0,0,3000,3000,3000,6500,6500,6500,10000,10000,10000,10000,10000],[0,2200,3800,4800,5500,6000,6300,8300,8700,8950,9150,9300,9400],[0,900,1800,2000,3100,4200,4400,5600,6700,6900,8000,9100,10000]];
+const PRIOR=[70,8,95,40,80];
+const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const clip=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)),mean=a=>a.length?a.reduce((s,v)=>s+v,0)/a.length:0;
+const med=a=>{if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),k=s.length>>1;return s.length%2?s[k]:(s[k-1]+s[k])/2};
+function prng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){return Math.sqrt(-2*Math.log(1-r()))*Math.cos(6.2832*r())}
+function fmt(d){let h=d.getHours(),ap=h>=12?'PM':'AM';h=h%12||12;const z=x=>String(x).padStart(2,'0');return MO[d.getMonth()]+' '+z(d.getDate())+', '+z(h)+':'+z(d.getMinutes())+' '+ap}
+function fmtS(d){let h=d.getHours(),ap=h>=12?'PM':'AM';h=h%12||12;return MO[d.getMonth()]+' '+d.getDate()+', '+h+':'+String(d.getMinutes()).padStart(2,'0')+' '+ap}
+// share of a preset's final views reached at share x of its growth time (exact piecewise-linear preset)
+function F(p,x){if(x<=0)return 0;if(x>=1)return 1;const f=x*12,i=Math.min(11,Math.floor(f));return(p[i]+(p[i+1]-p[i])*(f-i))/p[12]}
+// x where a preset reaches 99.5% of its views (its growth end), and the preset rescaled so that point sits at x=1.
+// Clipper graphs are measured to the same 99.5% point, so both sides of every comparison end growth at x=1.
+const EP=P.map(p=>{const f=p.map(v=>v/p[12]),k=f.findIndex(v=>v>=0.995);return k<=0?1:(k-1+(0.995-f[k-1])/(f[k]-f[k-1]))/12});
+function Fs(g,x){return x<=0?0:F(P[g],x*EP[g])}
+const FsPts=g=>P[g].map((y,k)=>[k/12/EP[g],y/P[g][12]]);
+// share of a preset's growth TIME (x in 0..1) where its rate is under 10% of its mean rate: same measure the clipper gets
+const PZ=P.map((p,g)=>{const N=1200;let z=0;for(let k=0;k<N;k++){const x=(k+.5)/N,r=(Fs(g,x+.5/N)-Fs(g,x-.5/N))*N;if(r<0.1*Fs(g,1))z++}return z/N});
+function sim(g,c,t0){const{n,m,tot,noise,win}=c,p=P[g],fin=p[12],W=win?Math.min(win,n*m):n*m;
+ const cum=k=>{const f=Math.min(1,k*m/W)*12,i=Math.min(11,Math.floor(f));return tot*(p[i]+(p[i+1]-p[i])*(f-i))/fin};
+ let raw=[];for(let k=1;k<=n;k++)raw.push(cum(k)-cum(k-1));
+ const r=prng(g*7919+n*31+m);if(noise>0)raw=raw.map(v=>v>0?v*Math.max(0,1+noise/100*gauss(r)):0);
+ const s=mean(raw)*n;raw=raw.map(v=>v*tot/s);const fl=raw.map(Math.floor);let rem=tot-fl.reduce((a,b)=>a+b,0);
+ raw.map((v,i)=>[v-fl[i],i]).sort((a,b)=>b[0]-a[0]).slice(0,rem).forEach(x=>fl[x[1]]++);
+ let cu=0;return fl.map((v,i)=>{cu+=v;return{i:i+1,v,c:cu,t:new Date(t0+i*m*60000)}})}
+/* Reads one-line logs ("12, 148, Nov 20, 08:34 AM", CSV) and block logs (scan no / time / +views / =total on separate lines).
+   Times without AM/PM are read in order: each time takes the earliest reading that is not before the previous scan. */
+function parse(txt,yr){yr=yr||new Date().getFullYear();
+ const recs=[];let cur={};const push=()=>{if(Object.keys(cur).length)recs.push(cur);cur={}},set=(k,v)=>{if(cur[k]!==undefined)push();cur[k]=v};
+ const DT=/([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?,?\s+(?:at\s+)?(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp])?\.?(?:[Mm]\.?)?/;
+ const ISO=/(\d{4})-(\d{1,2})-(\d{1,2})[T\s]+(\d{1,2}):(\d{2})/,DMY=/(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4}),?\s+(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp])?\.?(?:[Mm]\.?)?/;
+ txt.split(/\r?\n/).forEach(line=>{let l=' '+line.replace(/["']/g,' ')+' ',dt=null,m;
+  if((m=DT.exec(l))){const mi=MO.findIndex(x=>x.toLowerCase()==m[1].slice(0,3).toLowerCase());if(mi>=0){dt={mo:mi,d:+m[2],y:m[3]?+m[3]:null,h:+m[4],mi:+m[5],ap:m[6]?m[6].toLowerCase():null};l=l.replace(m[0],' ')}}
+  if(!dt&&(m=ISO.exec(l))){dt={mo:+m[2]-1,d:+m[3],y:+m[1],h:+m[4],mi:+m[5],ap:null,h24:1};l=l.replace(m[0],' ')}
+  if(!dt&&(m=DMY.exec(l))){let a=+m[1],b=+m[2];if(b>12)[a,b]=[b,a];const y=+m[3]<100?2000+ +m[3]:+m[3];dt={mo:b-1,d:a,y,h:+m[4],mi:+m[5],ap:m[6]?m[6].toLowerCase():null};l=l.replace(m[0],' ')}
+  const plus=[...l.matchAll(/\+\s*(\d[\d,]*)/g)].map(x=>+x[1].replace(/,/g,''));l=l.replace(/\+\s*\d[\d,]*/g,' ');
+  const eq=[...l.matchAll(/=\s*(\d[\d,]*)/g)].map(x=>+x[1].replace(/,/g,''));l=l.replace(/=\s*\d[\d,]*/g,' ');
+  let ns=l.match(/\d+/g)||[];
+  if(ns.length>=3&&ns.slice(2).every(s=>s.length==3)&&ns[1].length<=3)ns=[ns[0],ns.slice(1).join('')]; // "5, 1,279" -> 5 and 1279
+  if(!dt&&!plus.length&&!eq.length&&!ns.length)return;
+  if(ns.length>=2){if(cur.i!==undefined||cur.v!==undefined||cur.c!==undefined)push();cur.i=+ns[0];set('v',+ns[1])}
+  else if(ns.length==1){if(cur.i!==undefined&&cur.v===undefined&&cur.dt&&!plus.length)set('v',+ns[0]);else{if(cur.i!==undefined||cur.v!==undefined||cur.c!==undefined)push();cur.i=+ns[0]}}
+  if(dt)set('dt',dt);if(plus.length)set('v',plus[0]);if(eq.length)set('c',eq[0])});
+ push();
+ const rows=[],notes=[];let pc=0,bad=0,noAP=0,prev=null,yc=yr,lm=null,flip=0;
+ recs.forEach(r=>{let v=r.v;if(v===undefined){if(r.c===undefined)return;v=r.c-pc}
+  if(r.c!==undefined&&r.v!==undefined&&r.c!==pc+r.v)bad++;
+  pc=r.c!==undefined?r.c:pc+v;let t=null;
+  if(r.dt){const d=r.dt;if(d.y!=null)yc=d.y;else if(lm!=null&&d.mo<lm-6)yc++;lm=d.mo;
+   const day=new Date(d.y!=null?d.y:yc,d.mo,d.d).getTime()/60000;let hs;
+   if(d.ap)hs=[d.h%12+(d.ap=='p'?12:0)];else if(d.h24||d.h>12||d.h==0)hs=[d.h];else{noAP++;hs=[d.h%12,d.h%12+12]}
+   const ts=hs.map(h=>day+h*60+d.mi);
+   if(prev==null)t=ts[0];else{const fw=ts.filter(x=>x>=prev);t=fw.length?Math.min(...fw):Math.max(...ts)}
+   if(hs.length>1&&t==ts[1])flip++;prev=t}
+  rows.push({i:r.i!==undefined?r.i:rows.length+1,v,t,c:r.c})});
+ if(noAP)notes.push('Times have no AM/PM, so they were read in order from the first scan as AM'+(flip?'; '+flip+' later scan'+(flip>1?'s were':' was')+' read as PM to keep time moving forward':'')+'.');
+ if(bad)notes.push(bad+' scan'+(bad>1?'s have':' has')+' a running total (=) that does not match the views added (+). The + values were used.');
+ if(rows.some(r=>r.t===null)&&rows.some(r=>r.t!==null))notes.push('Some scans have no time, so all scans were treated as evenly spaced.');
+ rows.notes=notes;return rows}
+// first scan looks like the starting count (views that existed before tracking began)
+function looksBase(rows){if(rows.length<4)return false;const m=med(rows.slice(1,Math.min(rows.length,21)).map(r=>r.v));return rows[0].v>2.5*m&&rows[0].v>0}
+function score(rows,opt){opt=opt||{};
+ const flags=[],comp=[];if(rows.length<(opt.base?9:8))return{err:'Need at least 8 growth scans to score a graph.'};
+ const hasT=rows.every(r=>r.t!==null);let ooo=0,dup=0;
+ if(hasT){for(let i=1;i<rows.length;i++){if(rows[i].t<rows[i-1].t)ooo++;if(rows[i].t==rows[i-1].t)dup++}rows=[...rows].sort((a,b)=>a.t-b.t||a.i-b.i)}else rows=rows.map((r,i)=>({...r,t:i}));
+ let first=null,B=0;if(opt.base){first=rows[0];B=first.v;rows=rows.slice(1)}
+ const n=rows.length,tt=rows.map(r=>r.t),g=med(tt.slice(1).map((x,i)=>Math.max(x-tt[i],0.5)))||1;
+ const O=first?first.t:tt[0]-g,t=tt.map(x=>x-O),gaps=t.map((x,i)=>Math.max(i?x-t[i-1]:x,0.5));
+ const v=rows.map(r=>r.v);let cu=0;const c=v.map(x=>cu+=x),tot=cu;
+ if(tot<=0)return{err:'Total views is zero.'};
+ const ge=Math.max(0,c.findIndex(x=>x>=0.995*tot)),na=Math.max(ge+1,Math.min(n,6)),tail=n-na,Tg=t[ge],u=t.map(x=>Math.min(1,x/Tg));
+ const at=x=>{let j=0;while(j<n-1&&u[j+1]<x)j++;const x0=j==0?0:u[j-1],y0=j==0?0:c[j-1]/tot,x1=u[j],y1=c[j]/tot;return x1>x0?y0+(y1-y0)*clip((x-x0)/(x1-x0)):y1},half=at(0.5);
+ const va=v.slice(0,na),r=va.map((x,i)=>x/gaps[i]),th=Math.max(1,Math.floor(na/3)),q=Math.max(1,Math.floor(na/4));
+ const mv=mean(va),mr=va.reduce((s,x)=>s+x,0)/gaps.slice(0,na).reduce((s,x)=>s+x,0);
+ const R=mean(r.slice(0,th))>0?mean(r.slice(-th))/mean(r.slice(0,th)):1;
+ const Q2=mean(r.slice(q,2*q)),acc=Q2>0?mean(r.slice(3*q))/Q2:1;
+ const endR=mean(r)>0?mean(r.slice(-5))/mean(r):0;
+ // batch gaps: share of growth TIME with almost no views (works for fixed-interval scanners and for trackers that only log when views change)
+ const gt=gaps.slice(0,na),zero=gt.reduce((s,x,i)=>s+(r[i]<0.1*mr?x:0),0)/gt.reduce((s,x)=>s+x,0);
+ const qq=va.map((x,i)=>{const m=med(r.slice(Math.max(0,i-2),i+3));return m>0?r[i]/m:null}).filter(x=>x!==null);
+ const mq=mean(qq),cv=mq>0?Math.sqrt(mean(qq.map(x=>(x-mq)**2)))/mq:0;
+ const mx=Math.max(...v)/tot;
+ const w=Math.max(3,Math.round(na*0.08));let surge=0;
+ for(let j=Math.max(w,Math.floor(na*0.25));j+w<=na;j+=1){const a=mean(r.slice(j,j+w)),b=mean(r.slice(j-w,j));surge=Math.max(surge,a/(b+0.02*mean(r)))}
+ const bad=ooo+dup;
+ const add=(k,val,s,w8,txt)=>{comp.push({k,val,s,w:w8,pts:s*w8});if(s>=0.35)flags.push({s,t:txt})};
+ add('Curve bend (share of views by mid-growth)',(half*100).toFixed(0)+'%',clip((0.74-half)/0.2),24,'Almost straight: only '+Math.round(half*100)+'% of views arrive by the halfway point of growth. Healthy curves are usually above 75%.');
+ add('Decay (late rate ÷ early rate)',R.toFixed(2),clip((R-0.4)/0.6),14,'No decay: the late rate is '+Math.round(R*100)+'% of the early rate. Healthy reels usually fall below 40%.');
+ add('Late acceleration',acc.toFixed(2),clip((acc-1.2)/0.8),4,'Growth speeds up late (last quarter is '+acc.toFixed(1)+'× the second quarter).');
+ add('Stops at full speed',tail>=3?endR.toFixed(2):'n/a',tail>=3?clip((endR-0.5)/0.5):0,10,'Views stop dead while the rate is still '+Math.round(endR*100)+'% of average. Organic growth tapers before it stops.');
+ add('Batch gaps (share of growth time with almost no views)',(zero*100).toFixed(0)+'%',clip((zero-0.1)/0.3),14,Math.round(zero*100)+'% of the growth time has almost no views, which suggests views arriving in batches.');
+ add('Too uniform (scan-to-scan variation)',cv.toFixed(2),clip((0.3-cv)/0.25),6,'Scan-to-scan variation is unusually low ('+cv.toFixed(2)+'). Real audiences are lumpier.');
+ add('Single-scan spike (share of total)',(mx*100).toFixed(1)+'%',clip((mx-0.12)/0.2),6,'One scan holds '+(mx*100).toFixed(0)+'% of all views.');
+ add('Sudden surge after slow stretch',surge.toFixed(1)+'×',clip((surge-2)/3),16,'A late surge runs at '+surge.toFixed(1)+'× the rate just before it, with no taper into it.');
+ add('Tracker integrity (order and duplicates)',bad+' issue'+(bad==1?'':'s'),clip(bad/(0.1*n)),6,bad+' timestamp problem(s): scans out of order or sharing a time. A tracker that misses nothing should not do this.');
+ const Fsum=comp.reduce((s,x)=>s+x.pts,0);
+ const pz=PZ,L=50,dist=P.map((p,pi)=>{let d=0;for(let k=0;k<L;k++){const x=(k+0.5)/L;d+=Math.abs(at(x)-Fs(pi,x))}return d/L+0.4*Math.abs(zero-pz[pi])});
+ const ws=dist.map(d=>Math.exp(-d/0.04)),sw=ws.reduce((a,b)=>a+b,0),prior=ws.reduce((s,x,i)=>s+x/sw*PRIOR[i],0);
+ const bot=Math.round(clip((0.75*Fsum+0.25*prior)/100,0,1)*100),span=hasT?(rows[n-1].t-(first?first.t:rows[0].t))/60:0;
+ let tier=bot<=30?'Low':bot<=60?'Medium':bot<=85?'High':'Critical',act=bot<=30?'Pass':bot<=60?'Hold for review':'Flag';
+ const prov=(hasT&&span<12)||n<15;if(prov){flags.push({s:0.3,t:'Provisional: under '+(n<15?'15 scans':'12 hours')+' of data. Judge again at 48 hours or more.'});if(act=='Pass')act='Hold (too early)'}
+ const still=tail<2&&endR>0.5;if(still)flags.push({s:0.32,t:'Still growing at the last scan. The shape is judged on growth so far; re-check once views level off.'});
+ flags.sort((a,b)=>b.s-a.s);
+ return{bot,tier,act,flags,comp,F:Fsum,prior,match:dist.map(d=>Math.round(100*clip(1-d/0.3))),dist,near:dist.indexOf(Math.min(...dist)),at,u,c,tot,v,n,span,tail,na,hasT,t,g,Tg,O,B,first,rows,still,gaps}}
+// head-to-head: clipper growth vs one preset, both on share-of-growth-time vs share-of-growth-views
+function compare(e,g){const N=240;let sad=0,mx=0,mxx=0,ah=0;
+ for(let k=0;k<N;k++){const x=(k+.5)/N,d=e.at(x)-Fs(g,x);sad+=Math.abs(d);if(Math.abs(d)>Math.abs(mx)){mx=d;mxx=x}if(d>0)ah++}
+ const cps=[.1,.25,.5,.75,.9].map(x=>({x,c:e.at(x),p:Fs(g,x)}));
+ const ph=[];for(let k=0;k<12;k++){const a=k/12,b=(k+1)/12;ph.push({a,b,c:e.at(b)-e.at(a),p:Fs(g,b)-Fs(g,a)})}
+ const runs=[];ph.forEach((q,k)=>{const d=q.c-q.p,s=Math.abs(d)<0.02?0:Math.sign(d),l=runs[runs.length-1];if(s&&l&&l.s==s&&l.b==k)Object.assign(l,{b:k+1,c:l.c+q.c,p:l.p+q.p});else if(s)runs.push({s,a:k,b:k+1,c:q.c,p:q.p})});
+ runs.forEach(r=>r.d=r.c-r.p);runs.sort((x,y)=>Math.abs(y.d)-Math.abs(x.d));
+ const cross=[];for(let k=1;k<N;k++){const x0=(k-.5)/N,x1=(k+.5)/N,d0=e.at(x0)-Fs(g,x0),d1=e.at(x1)-Fs(g,x1);if(d0*d1<0&&Math.abs(d0-d1)>0)cross.push(x0+(x1-x0)*d0/(d0-d1))}
+ return{g,mad:sad/N,mx,mxx,ahead:ah/N,cps,ph,runs,cross,match:e.match[g]}}
+// target log: same total, views placed so the cumulative follows the preset exactly at each scan
+function tweak(e,g,o){o=o||{};const G=e.tot,out=[];
+ if(e.first)out.push({t:e.hasT?e.first.t:0,v:e.B,o:e.B,base:1});
+ let xs,keep=!(o.mode=='even'&&e.hasT);
+ if(keep)xs=e.t.slice();else{const K=Math.min(1500,Math.max(2,Math.round(e.Tg/Math.max(1,o.m||30))));xs=[];for(let k=1;k<=K;k++)xs.push(e.Tg*k/K)}
+ let pc=0;xs.forEach((x,i)=>{const cc=(i==xs.length-1?G:Math.round(G*Math.min(1,Fs(g,x/e.Tg))));out.push({t:e.hasT?Math.round(e.O+x):null,v:cc-pc,o:keep?e.v[i]:null});pc=cc});
+ let rows=out.filter(r=>r.base||!o.drop||r.v>0),cu=0;rows=rows.map((r,i)=>{cu+=r.v;return{...r,i:i+1,c:cu}});return rows}
+function logText(rows,style){return rows.map(r=>{const d=r.t!=null?fmtS(new Date(r.t*60000)):null;
+ return style=='line'?[r.i,r.v].concat(d?[d]:[]).join(', '):[r.i].concat(d?[d]:[],['+'+r.v.toLocaleString('en-US'),'='+r.c.toLocaleString('en-US')]).join('\n')}).join('\n')}
+/*ENDPURE*/
+const $=id=>document.getElementById(id),css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim(),col=g=>css('--c'+(g+1));
+const S=[[46,25],[48,26],[56,29],[50,27],[52,28]].map(a=>({n:a[0],m:a[1],tot:10000,noise:8,win:0}));
+let cur=0,timer=null,shown=0,rows=[],sel=[0,0,0,0,0],pov='cr',met='cum',hov=null,ovOpen=false,M=null,tgt=1,lastTxt=null,TW={mode:'keep',m:20,fmt:'block',drop:false};
+const t0=()=>new Date($('start').value).getTime();
+function dur(min){return min<2880?(min/60).toFixed(min%60?1:0)+' h':(min/1440).toFixed(1)+' d'}
+const nf=v=>Math.round(v).toLocaleString('en-US');
+/* ---------- graph engine (shared by CR Mod POV and Regular) ---------- */
+const CRP=['#e9eaee','#3fcf9f','#f0a458','#c08ae8','#ff7b83'],CRL='#6aa7f5',CRT='#b4b6ba';
+const pcol=g=>pov=='cr'?CRP[g]:col(g),pad=x=>String(x).padStart(2,'0');
+const kf=v=>{const a=Math.abs(v),s=v<0?'−':'';return a>=1000?s+(+(a/1000).toFixed(a%1000?1:0))+'K':s+Math.round(a)};
+function hm(d){let h=d.getHours(),ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+pad(d.getMinutes())+' '+ap}
+function setup(c){const dpr=devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;c.width=Math.max(1,w*dpr);c.height=Math.max(1,h*dpr);const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);return[x,w,h]}
+function rr(x,a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()}
+function niceStep(r){if(!(r>0))return 1;const p=10**Math.floor(Math.log10(r)),f=r/p;return(f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*p}
+const TS=[5,10,15,30,60,120,180,360,720,1440,2880,4320,10080,20160,43200,86400];
+function timeTicks(a,b,maxN){const st=TS.find(s=>(b-a)/s<=maxN)||TS[TS.length-1],off=-new Date(a*60000).getTimezoneOffset(),out=[];
+ for(let t=Math.ceil((a+off)/st)*st-off;t<=b+1e-6;t+=st){const d=new Date(t*60000),mid=d.getHours()==0&&d.getMinutes()==0;
+  out.push({v:t,l:st>=1440||mid?MO[d.getMonth()]+' '+d.getDate():st<60||d.getMinutes()?hm(d):(d.getHours()%12||12)+' '+(d.getHours()>=12?'PM':'AM')})}return out}
+function fracTicks(a,b,maxN){const st=[.05,.1,.2,.25,.5,1].find(s=>(b-a)/s<=maxN)||1,out=[];for(let k=Math.ceil(a/st-1e-9);k*st<=b+1e-9;k++)out.push({v:k*st,l:Math.round(k*st*100)+'%'});return out}
+function idxTicks(a,b,maxN){const st=Math.max(1,Math.ceil(niceStep((b-a)/maxN))),out=[];for(let v=Math.ceil(a/st)*st;v<=b+1e-9;v+=st)if(v>=0)out.push({v,l:'Scan '+(v+1)});return out}
+// monotone cubic (Fritsch–Carlson): passes through every scan, never overshoots, keeps flat stretches flat
+function mono(x,p){const n=p.length;for(let i=1;i<n;i++)if(p[i][0]<=p[i-1][0]){x.moveTo(p[0][0],p[0][1]);p.forEach(q=>x.lineTo(q[0],q[1]));return}
+ const d=[],m=new Array(n);for(let i=0;i<n-1;i++)d[i]=(p[i+1][1]-p[i][1])/(p[i+1][0]-p[i][0]);
+ m[0]=d[0];m[n-1]=d[n-2];for(let i=1;i<n-1;i++)m[i]=d[i-1]*d[i]<=0?0:(d[i-1]+d[i])/2;
+ for(let i=0;i<n-1;i++){if(d[i]===0){m[i]=0;m[i+1]=0;continue}const a=m[i]/d[i],b=m[i+1]/d[i],s=a*a+b*b;if(s>9){const t=3/Math.sqrt(s);m[i]=t*a*d[i];m[i+1]=t*b*d[i]}}
+ x.moveTo(p[0][0],p[0][1]);for(let i=0;i<n-1;i++){const h=(p[i+1][0]-p[i][0])/3;x.bezierCurveTo(p[i][0]+h,p[i][1]+m[i]*h,p[i+1][0]-h,p[i+1][1]-m[i+1]*h,p[i+1][0],p[i+1][1])}}
+function draw(c,sp,det,isMain){const[x,w,h]=setup(c);c._m=null;if(!sp)return;
+ const cr=pov=='cr',xl=det||isMain||!cr,pillOn=cr&&isMain;
+ const L=cr?12:58,R=cr?54:14,T=cr?14:10,B=xl?(pillOn?46:26):8,pw=w-L-R,ph=h-T-B;if(pw<30||ph<30)return;
+ const xs=(sp.xmax-sp.xmin)||1,X=v=>L+pw*(v-sp.xmin)/xs;
+ const lo=Math.min(0,sp.ymn||0),hi=Math.max(sp.ymx||0,lo<0?0:1e-9),rg=(hi-lo)||1;
+ let st=niceStep(rg/(det?(isMain?7:4):(isMain?4:3)));if(!sp.pct)st=Math.max(1,st);
+ const ym=hi+rg*.06,yn=lo<0?lo-rg*.06:0,Y=v=>T+ph*(1-(v-yn)/(ym-yn));
+ const yf=sp.pct?(v=>(v*100).toFixed(st<.01?1:0)+'%'):sp.sgn?(v=>(v>0?'+':'')+kf(v)):kf;
+ c._m={L,pw,xmin:sp.xmin,xs,sp};
+ const tx=cr?CRT:css('--mut'),gr=cr?'rgba(255,255,255,.08)':css('--grid'),fs=det?13:12;
+ x.font=fs+'px system-ui,sans-serif';x.textAlign='right';
+ for(let k=Math.ceil(yn/st-1e-9);k*st<=ym+1e-9;k++){const v=k*st,y=Y(v);if(cr&&v==0&&lo>=0)continue;
+  if(det||!cr){x.strokeStyle=gr;x.lineWidth=1;x.beginPath();x.moveTo(L,y);x.lineTo(L+pw,y);x.stroke()}x.fillStyle=tx;x.fillText(yf(v),cr?w-6:L-6,y+4)}
+ if(!cr||lo<0){x.strokeStyle=cr?'rgba(255,255,255,.35)':css('--line');x.lineWidth=1;x.beginPath();x.moveTo(L,Y(0));x.lineTo(L+pw,Y(0));x.stroke()}
+ const sc=sp.scans||[],idx=hov!=null&&hov<sc.length?hov:(pillOn&&sc.length?sc.length-1:null),bk=sp.bk||'v';
+ x.save();x.beginPath();x.rect(L-3,0,pw+6,T+ph+1);x.clip();
+ sp.series.forEach(s=>{x.lineJoin='round';x.lineCap='round';x.globalAlpha=s.alpha||1;
+  if(s.t=='bars'){const hl=cr?'#ffffff':css('--ink');sc.forEach((q,i)=>{if(q.skip)return;const a=X(q.x0),b=X(q.x1),bw=b-a,g=bw>3?1:0,y=Y(q[bk]);x.fillStyle=hov===i?hl:s.color;x.fillRect(a+g,Math.min(y,Y(0)),Math.max(1,bw-2*g),Math.abs(Y(0)-y))});x.globalAlpha=1;return}
+  const p=s.pts.map(q=>[X(q[0]),Y(q[1])]);if(p.length<2){x.globalAlpha=1;return}
+  x.beginPath();if(cr&&s.smooth)mono(x,p);else{x.moveTo(p[0][0],p[0][1]);for(let i=1;i<p.length;i++)x.lineTo(p[i][0],p[i][1])}
+  x.strokeStyle=s.color;x.lineWidth=s.w||1.8;x.setLineDash(s.dash||[]);x.stroke();x.setLineDash([]);
+  if(s.fill){const y0=Y(0);x.lineTo(p[p.length-1][0],y0);x.lineTo(p[0][0],y0);x.closePath();
+   if(s.fill=='pn'){const ok=cr?'rgba(63,207,159,.28)':'rgba(20,148,106,.22)',bd=cr?'rgba(255,123,131,.28)':'rgba(212,67,75,.22)';
+    x.save();x.clip();x.fillStyle=ok;x.fillRect(L,0,pw,y0);x.fillStyle=bd;x.fillRect(L,y0,pw,h);x.restore()}
+   else if(cr){const g=x.createLinearGradient(0,T,0,y0);g.addColorStop(0,'rgba(106,167,245,.30)');g.addColorStop(1,'rgba(106,167,245,.03)');x.fillStyle=g;x.fill()}}
+  if(det&&s.main&&sc.length<=300){x.fillStyle=s.color;p.slice(s.p0?0:1).forEach(q=>{x.beginPath();x.arc(q[0],q[1],2.3,0,6.3);x.fill()})}
+  x.globalAlpha=1});
+ x.restore();
+ let px=-1e9,hw=0;
+ if(idx!=null){const q=sc[idx],cx=X(q.x1);
+  x.strokeStyle=cr?'rgba(255,255,255,.34)':css('--mut');x.lineWidth=1;if(!cr)x.setLineDash([3,3]);x.beginPath();x.moveTo(cx,T-6);x.lineTo(cx,T+ph);x.stroke();x.setLineDash([]);
+  if(sp.mode=='line'){const m=sp.series.find(s=>s.main);x.fillStyle=cr?'#fff':css('--panel');x.strokeStyle=m?m.color:CRL;x.lineWidth=2.5;x.beginPath();x.arc(cx,Y(sp.ly?q[sp.ly]:q.c),4.5,0,6.3);x.fill();x.stroke()}
+  if(pillOn){const t=sp.pl(q);x.font='600 '+(det?15:14)+'px system-ui,sans-serif';const tw=x.measureText(t).width+26;px=Math.min(w-tw/2-4,Math.max(tw/2+4,cx));hw=tw/2;
+   x.fillStyle='#2c2c2e';rr(x,px-hw,T+ph+8,tw,30,15);x.fill();x.fillStyle='#fff';x.textAlign='center';x.fillText(t,px,T+ph+28)}}
+ if(xl){x.font=fs+'px system-ui,sans-serif';x.fillStyle=tx;x.textAlign='center';
+  const maxN=Math.min(10,Math.max(2,Math.floor(pw/(det?95:125)))),tk=(sp.xk=='time'?timeTicks:sp.xk=='idx'?idxTicks:fracTicks)(sp.xmin,sp.xmax,maxN),ly=pillOn?T+ph+28:T+ph+18,yb=Y(lo<0?yn:0);let last=-1e9;
+  tk.forEach(t=>{const p=X(t.v),lw=x.measureText(t.l).width;if(Math.abs(p-px)<hw+lw/2+8||p-lw/2<2||p+lw/2>w-2||p-lw/2<last+10)return;
+   if(!cr){x.strokeStyle=css('--line');x.beginPath();x.moveTo(p,yb);x.lineTo(p,yb+4);x.stroke()}x.fillText(t.l,p,ly);last=p+lw/2})}}
+/* ---------- what each tab plots ---------- */
+const prL=g=>P[g].map((y,k)=>[k/12,y/P[g][12]]);
+function build(){const cr=pov=='cr',e=cur==6?window._exr:null;let mt=met;if(mt=='gap'&&!e)mt='cum';
+ if(cur<5){const s=S[cur],n=rows.length,base=rows[0].t/60000-s.m,xmax=rows[n-1].t/60000,tot=rows[n-1].c,span=xmax-base,mc=cr?CRL:col(cur),hr=s.m/60;
+  const sc=rows.slice(0,shown).map((q,i)=>({x0:i?rows[i-1].t/60000:base,x1:q.t/60000,v:q.v,r:q.v/hr,c:q.c,txt:`Scan ${q.i} of ${n} · ${fmt(q.t)} · +${nf(q.v)} · ${nf(q.c)} views · ${nf(q.v/hr)} per hour`}));
+  const pl=q=>{const d=new Date(q.x1*60000);return span>2880?MO[d.getMonth()]+' '+d.getDate()+', '+hm(d):hm(d)},ax={xk:'time',xmin:base,xmax,scans:sc,pl};
+  const C={...ax,ymx:tot,mode:'line',series:[{t:'line',color:mc,w:cr?2.4:2.2,main:1,fill:1,smooth:1,pts:[[base,0],...sc.map(q=>[q.x1,q.c])]}]};
+  const Pv={...ax,ymx:Math.max(1,...rows.map(q=>q.v)),mode:'bars',series:[{t:'bars',color:mc}]},Rv={...Pv,ymx:Math.max(1,...rows.map(q=>q.v))/hr,bk:'r'};
+  const nm=NM[cur];return mt=='per'?{title:nm+': views added per scan',t2:'Cumulative views',main:Pv,sub:C}:mt=='rate'?{title:nm+': views per hour',t2:'Cumulative views',main:Rv,sub:C}:{title:nm+': cumulative views',t2:'Views added per scan',main:C,sub:Pv}}
+ if(!e){const gs=cur==5?[0,1,2,3,4]:[...new Set([tgt,...[0,1,2,3,4].filter(g=>sel[g])])],leg=gs.map(g=>[g,NM[g]]),nm=cur==5?'All presets':'Presets';
+  if(mt=='cum')return{title:nm+': share of views vs share of run',main:{xk:'frac',xmin:0,xmax:1,ymx:1,pct:1,scans:[],series:gs.map(g=>({t:'line',color:pcol(g),w:2,pts:prL(g)}))},sub:null,leg};
+  const segs=gs.map(g=>({g,y:P[g].slice(1).map((v,k)=>(v-P[g][k])/P[g][12])}));
+  return{title:nm+': share of views in each twelfth of the run',main:{xk:'frac',xmin:0,xmax:1,ymx:Math.max(.01,...segs.flatMap(o=>o.y)),pct:1,scans:[],
+   series:segs.map(o=>({t:'line',color:pcol(o.g),w:2,pts:o.y.flatMap((y,k)=>[[k/12,y],[(k+1)/12,y]])}))},sub:null,leg}}
+ return buildClip(e,mt)}
+function buildClip(e,mt){const cr=pov=='cr',g=tgt,T=e.Tg,O=e.O,G=e.tot,B=e.B,hT=e.hasT,mc=cr?CRL:css('--ink'),hu=hT?60:1;
+ const ext=[0,1,2,3,4].filter(k=>sel[k]&&k!=g),sc=[];
+ if(e.first)sc.push({x0:O,x1:O,v:B,r:0,c:B,p:B,d:0,skip:1,i:e.first.i,tm:e.first.t});
+ let x0=O;e.t.forEach((t,i)=>{const x1=O+t,c=B+e.c[i],pv=B+G*Fs(g,t/T);sc.push({x0,x1,v:e.v[i],r:e.v[i]/((x1-x0)/hu||1),c,p:pv,d:c-pv,i:e.rows[i].i,tm:e.rows[i].t});x0=x1});
+ const xmax=sc[sc.length-1].x1,tl=q=>hT?fmtS(new Date(q.tm*60000)):'',unit=hT?'per hour':'per scan gap';
+ sc.forEach(q=>{q.txt=q.skip?`Scan ${q.i}${hT?' · '+tl(q):''} · starting count ${nf(q.v)}`:`Scan ${q.i}${hT?' · '+tl(q):''} · +${nf(q.v)} (${nf(q.r)} ${unit}) · total ${nf(q.c)} · ${NM[g]} ${nf(q.p)} · ${Math.abs(q.d)<0.5?'level':nf(Math.abs(q.d))+(q.d>0?' ahead':' behind')}`});
+ const pl=q=>{if(!hT)return'Scan '+q.i;const d=new Date(q.x1*60000);return xmax-O>2880?MO[d.getMonth()]+' '+d.getDate()+', '+hm(d):hm(d)};
+ const ax={xk:hT?'time':'idx',xmin:O,xmax,scans:sc,pl};
+ const pLine=(k,w,a,dash)=>{const pts=FsPts(k).map(q=>[O+q[0]*T,B+G*q[1]]);if(pts[pts.length-1][0]<xmax)pts.push([xmax,B+G]);return{t:'line',color:pcol(k),w,alpha:a,dash,pts}};
+ const cPts=(e.first?[]:[[O,0]]).concat(sc.map(q=>[q.x1,q.c]));
+ const main={t:'line',color:mc,w:cr?2.4:2.6,main:1,fill:1,smooth:1,p0:!!e.first,pts:cPts};
+ const C={...ax,ymx:B+G,mode:'line',series:[...ext.map(k=>pLine(k,1.4,.55)),pLine(g,2.2,1,[7,5]),main]};
+ const exp=k=>sc.map(q=>q.skip?0:G*(Fs(k,(q.x1-O)/T)-Fs(k,(q.x0-O)/T))),step=(k,y,w,a,dash)=>({t:'line',color:pcol(k),w,alpha:a,dash,pts:sc.flatMap((q,i)=>q.skip?[]:[[q.x0,y[i]],[q.x1,y[i]]])});
+ const eg=exp(g),ee=ext.map(k=>({k,y:exp(k)})),bars={t:'bars',color:mc};
+ const Pv={...ax,mode:'bars',ymx:Math.max(1,...e.v,...eg,...ee.flatMap(o=>o.y)),series:[bars,...ee.map(o=>step(o.k,o.y,1.3,.6)),step(g,eg,2,1,[6,4])]};
+ const rStep=(k,w,a,dash)=>{const p=P[k],pts=[];for(let j=0;j<12;j++){const xa=O+j/12/EP[k]*T,xb=O+(j+1)/12/EP[k]*T,y=G*(p[j+1]-p[j])/p[12]/((xb-xa)/hu);if(xa>=xmax)break;pts.push([xa,y],[Math.min(xb,xmax),y])}if(pts.length&&pts[pts.length-1][0]<xmax)pts.push([pts[pts.length-1][0],0],[xmax,0]);return{t:'line',color:pcol(k),w,alpha:a,dash,pts}};
+ const rs=[...ext.map(k=>rStep(k,1.3,.6)),rStep(g,2,1,[6,4])];
+ const Rv={...ax,mode:'bars',bk:'r',ymx:Math.max(1,...sc.map(q=>q.skip?0:q.r),...rs.flatMap(s=>s.pts.map(q=>q[1]))),series:[bars,...rs]};
+ const dv=sc.map(q=>q.d),dHi=Math.max(0,...dv),dLo=Math.min(0,...dv),dPad=Math.max(1,(dHi-dLo)*.02);
+ const Gp={...ax,mode:'line',ly:'d',ymx:dHi||dPad,ymn:dLo<0?dLo:0,sgn:1,series:[{t:'line',color:mc,w:cr?2.2:2.4,main:1,fill:'pn',p0:!!e.first,pts:(e.first?[]:[[O,0]]).concat(sc.map(q=>[q.x1,q.d]))}]};
+ const leg=[[-1,'clipper'],[g,NM[g]+' (head to head, dashed)'],...ext.map(k=>[k,NM[k]])],nm=NM[g];
+ const Pc={...Pv,ymx:Math.max(1,...e.v),series:[bars]},Cc={...C,series:[pLine(g,2,1,[7,5]),main]};
+ if(mt=='per')return{title:`Clipper vs ${nm}: views added per scan`,t2:'Cumulative views',main:Pv,sub:Cc,leg};
+ if(mt=='rate')return{title:`Clipper vs ${nm}: views ${unit}`,t2:'Cumulative views',main:Rv,sub:Cc,leg};
+ if(mt=='gap')return{title:`Gap: clipper minus ${nm} (views; above zero = ahead)`,t2:'Cumulative views',main:Gp,sub:Cc,leg};
+ return{title:`Clipper vs ${nm}: cumulative views`,t2:'Clipper: views added per scan',main:C,sub:Pc,leg}}
+function paintAll(){if(!M)return;draw($('c1'),M.main,false,true);$('b2').style.display=M.sub?'':'none';if(M.sub)draw($('c2'),M.sub,false,false);
+ if(ovOpen){draw($('oc1'),M.main,true,true);$('ob2').style.display=M.sub?'':'none';if(M.sub)draw($('oc2'),M.sub,true,false)}
+ const sc=M.main.scans||[],i=hov!=null&&hov<sc.length?hov:(pov=='cr'&&sc.length?sc.length-1:null),t=i!=null?sc[i].txt:'';$('rd').textContent=t;$('ord').textContent=t}
+function hook(c){const f=e=>{const m=c._m;if(!m||!m.sp.scans||!m.sp.scans.length)return;const r=c.getBoundingClientRect(),v=m.xmin+(e.clientX-r.left-m.L)/m.pw*m.xs,bars=m.sp.mode=='bars';
+  let b=0,bd=1e18;m.sp.scans.forEach((q,i)=>{const d=Math.abs((bars?(q.x0+q.x1)/2:q.x1)-v);if(d<bd){bd=d;b=i}});if(hov!==b){hov=b;paintAll()}};
+ c.addEventListener('pointermove',f);c.addEventListener('pointerdown',f);c.addEventListener('pointerleave',()=>{if(hov!==null){hov=null;paintAll()}})}
+['c1','c2','oc1','oc2'].forEach(id=>hook($(id)));
+function show(mode){const p=mode=='preset';$('ctlpanel').style.display=p?'':'none';$('p3').style.display=p?'':'none';$('tp').style.display=mode=='test'?'':'none'}
+function render(){show(cur<5?'preset':cur==5?'all':'test');const gapOK=cur==6&&!!window._exr;document.querySelectorAll('.gapb').forEach(b=>b.hidden=!gapOK);if(met=='gap'&&!gapOK){met='cum';sync()}
+ M=build();
+ $('t1').textContent=$('ot1').textContent=M.title;$('t2').textContent=$('ot2').textContent=M.t2||'';
+ const lg=(M.leg||[]).map(l=>`<span><i style="background:${l[0]<0?(pov=='cr'?CRL:css('--ink')):pcol(l[0])}"></i>${l[1]}</span>`).join('');$('leg').innerHTML=$('oleg').innerHTML=lg;
+ paintAll();
+ if(cur<5){$('tb').innerHTML=rows.slice(0,shown).map(q=>`<tr><td class="n">${q.i}</td><td class="n">${q.v}</td><td>${fmt(q.t)}</td><td class="n">${q.c.toLocaleString()}</td></tr>`).join('');const tw=document.querySelector('.tw');tw.scrollTop=tw.scrollHeight}}
+function sync(){document.querySelectorAll('.crc').forEach(e=>e.classList.toggle('reg',pov=='reg'));
+ document.querySelectorAll('[data-pov]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.pov==pov));document.querySelectorAll('[data-met]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.met==met))}
+document.querySelectorAll('[data-pov]').forEach(b=>b.onclick=()=>{pov=b.dataset.pov;sync();render()});
+document.querySelectorAll('[data-met]').forEach(b=>b.onclick=()=>{met=b.dataset.met;sync();render()});
+function openOv(){ovOpen=true;$('ov').hidden=false;document.body.style.overflow='hidden';render();$('ox').focus()}
+function closeOv(){ovOpen=false;$('ov').hidden=true;document.body.style.overflow='';hov=null;render()}
+document.querySelectorAll('[data-exp]').forEach(b=>b.onclick=openOv);$('ox').onclick=closeOv;
+$('ov').addEventListener('click',e=>{if(e.target===$('ov'))closeOv()});addEventListener('keydown',e=>{if(e.key=='Escape'&&ovOpen)closeOv()});
+/* ---------- simulator controls ---------- */
+function load(){const s=S[cur];$('n').value=s.n;$('m').value=s.m;$('tot').value=s.tot;$('noise').value=s.noise;$('win').value=s.win}
+function read(){const s=S[cur],cl=(v,a,b)=>Math.min(b,Math.max(a,+v||a));s.n=cl($('n').value,10,1500);s.m=cl($('m').value,5,720);s.tot=+$('tot').value;s.noise=cl($('noise').value,0,30);s.win=+$('win').value;load()}
+function prep(){clearInterval(timer);read();rows=sim(cur,S[cur],t0())}
+function info(){const s=S[cur];$('status').textContent=rows.length+' scans, '+s.m+' min apart, '+dur(rows.length*s.m)+(s.win&&s.win<rows.length*s.m?'; growth ends at '+dur(s.win)+', then plateau':'')}
+function instant(){prep();shown=rows.length;info();render()}
+function run(){prep();shown=0;hov=null;render();const step=Math.max(1,Math.ceil(rows.length/60));timer=setInterval(()=>{shown=Math.min(rows.length,shown+step);$('status').textContent='Scan '+shown+' of '+rows.length+' · '+fmt(rows[shown-1].t);render();if(shown>=rows.length){clearInterval(timer);info()}},70)}
+function tab(i){clearInterval(timer);cur=i;hov=null;[...$('tabs').children].forEach((b,k)=>b.setAttribute('aria-selected',k==i));if(i<5){load();instant()}else render()}
+[...NM,'All presets','Test a clipper’s graph'].forEach((t,i)=>{const b=document.createElement('button');b.textContent=t;b.setAttribute('role','tab');b.onclick=()=>tab(i);$('tabs').appendChild(b)});
+$('win').onchange=()=>{const w=+$('win').value;if(w){let run=w*1.25,m=+$('m').value||25,n=Math.round(run/m);if(n>1500){m=Math.ceil(run/1500);n=Math.round(run/m)}$('m').value=m;$('n').value=Math.max(10,n)}instant()};
+$('run').onclick=run;$('inst').onclick=instant;
+$('csv').onclick=()=>{const t='SCANS,views add recorded,time captured\n'+rows.map(q=>[q.i,q.v,'"'+fmt(q.t)+'"'].join(',')).join('\n');dl(t,NM[cur].replace(/ /g,'_')+'_scans.csv','text/csv')};
+function dl(t,name,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+['n','m','tot','noise','start'].forEach(id=>$(id).addEventListener('change',instant));
+/* ---------- clipper test: score, head to head, target log ---------- */
+const EX=`1\nNov 20, 1:00\n+500\n=500\n2\nNov 20, 1:24\n+120\n=620\n3\nNov 20, 1:38\n+181\n=801\n4\nNov 20, 1:53\n+150\n=951\n5\nNov 20, 2:31\n+328\n=1,279\n6\nNov 20, 3:05\n+164\n=1,443\n7\nNov 20, 3:29\n+156\n=1,599\n8\nNov 20, 3:43\n+149\n=1,748\n9\nNov 20, 3:59\n+196\n=1,944\n10\nNov 20, 4:34\n+312\n=2,256\n11\nNov 20, 5:13\n+230\n=2,486\n12\nNov 20, 5:30\n+160\n=2,646\n13\nNov 20, 5:54\n+133\n=2,779\n14\nNov 20, 6:15\n+204\n=2,983\n15\nNov 20, 6:34\n+208\n=3,191\n16\nNov 20, 6:55\n+299\n=3,490\n17\nNov 20, 7:17\n+137\n=3,627\n18\nNov 20, 7:32\n+188\n=3,815\n19\nNov 20, 7:58\n+273\n=4,088\n20\nNov 20, 8:21\n+187\n=4,275\n21\nNov 20, 8:42\n+203\n=4,478\n22\nNov 20, 9:03\n+147\n=4,625\n23\nNov 20, 9:29\n+350\n=4,975\n24\nNov 20, 9:51\n+151\n=5,126\n25\nNov 20, 10:06\n+141\n=5,267\n26\nNov 20, 10:37\n+431\n=5,698\n27\nNov 20, 10:56\n+100\n=5,798\n28\nNov 20, 11:19\n+317\n=6,115\n29\nNov 20, 11:53\n+281\n=6,396\n30\nNov 20, 12:07\n+112\n=6,508\n31\nNov 20, 12:22\n+211\n=6,719\n32\nNov 20, 12:46\n+317\n=7,036\n33\nNov 20, 1:07\n+158\n=7,194\n34\nNov 20, 1:20\n+123\n=7,317\n35\nNov 20, 1:38\n+250\n=7,567\n36\nNov 20, 1:55\n+167\n=7,734\n37\nNov 20, 2:10\n+175\n=7,909\n38\nNov 20, 2:31\n+291\n=8,200\n39\nNov 20, 2:55\n+271\n=8,471\n40\nNov 20, 3:13\n+215\n=8,686\n41\nNov 20, 3:30\n+244\n=8,930\n42\nNov 20, 3:47\n+264\n=9,194\n43\nNov 20, 4:17\n+353\n=9,547\n44\nNov 20, 4:36\n+140\n=9,687\n45\nNov 20, 4:57\n+313\n=10,000`;
+NM.forEach((n,g)=>{$('chk').insertAdjacentHTML('beforeend',`<label><input type="checkbox" data-g="${g}"><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${col(g)}"></i>${n}</label>`);$('smp').insertAdjacentHTML('beforeend',`<option value="${g}">Sample: ${n}</option>`);$('tgt').insertAdjacentHTML('beforeend',`<option value="${g}">${n}</option>`)});
+$('tgt').value=tgt;
+$('tgt').onchange=()=>{tgt=+$('tgt').value;window._exr?doScore():render()};
+$('base').onchange=()=>{if(window._exr)doScore()};
+$('chk').onchange=e=>{sel[+e.target.dataset.g]=e.target.checked?1:0;render()};
+$('smp').onchange=()=>{const g=$('smp').value;if(g==='')return;if(g=='ex')$('paste').value=EX;else{const r=sim(+g,S[+g],t0());$('paste').value='SCANS, views add recorded, time captured\n'+r.map(q=>[q.i,q.v,fmt(q.t)].join(', ')).join('\n')}$('smp').value='';doScore()};
+$('clr').onclick=()=>{$('paste').value='';$('res').innerHTML='';$('pnote').innerHTML='';window._exr=null;lastTxt=null;hov=null;render()};
+function doScore(){const txt=$('paste').value,rw=parse(txt);
+ if(txt!==lastTxt){$('base').checked=looksBase(rw);lastTxt=txt;const md=med(rw.slice(1).filter((r,i)=>r.t!=null&&rw[i].t!=null).map((r,i)=>r.t-rw[i].t));if(md>0)TW.m=Math.max(1,Math.round(md))}
+ const sv=rw.reduce((s,r)=>s+r.v,0),hasT=rw.length&&rw.every(r=>r.t!==null);
+ $('pnote').innerHTML=rw.length?`Read <b>${rw.length} scans</b>, <b>${nf(sv)} views</b>${hasT?' from '+fmtS(new Date(Math.min(...rw.map(r=>r.t))*60000))+' to '+fmtS(new Date(Math.max(...rw.map(r=>r.t))*60000)):', no times'}${$('base').checked?` · scan 1 (${nf(rw[0].v)} views) treated as the starting count, so growth is measured on the other ${nf(sv-rw[0].v)}`:''}.`+(rw.notes||[]).map(n=>'<br>'+n).join(''):'';
+ const r=score(rw,{base:$('base').checked});if(r.err){$('res').innerHTML='<p>'+r.err+'</p>';window._exr=null;render();return}
+ window._exr=r;hov=null;render();
+ const colr=r.bot<=30?'--ok':r.bot<=60?'--md':'--hi',cp=compare(r,tgt);
+ $('res').innerHTML=`<div class="score"><div class="big" style="color:var(${colr})">${r.bot}</div><div><span class="tag" style="background:var(${colr})">${r.tier} risk</span> <strong>${r.act}</strong><br><small>Nearest preset: <strong>${NM[r.near]}</strong> (${r.match[r.near]}% shape match) · ${r.n} growth scans${r.hasT?' over '+dur(r.span*60):', no timestamps'}</small></div></div>
+ <ul class="fl">${r.flags.length?r.flags.map(f=>'<li>'+f.t+'</li>').join(''):'<li>No shape flags triggered.</li>'}</ul>
+ <div class="sec">${h2h(r,cp)}</div><div class="sec" id="tsec"></div>
+ <details><summary>Shape match to every preset</summary><div class="tw" style="margin-top:6px"><table><tbody>${NM.map((n,g)=>`<tr><td>${n}</td><td class="n">${r.match[g]}%</td></tr>`).join('')}</tbody></table></div></details>
+ <details><summary>How the bot score was built</summary><div class="tw" style="margin-top:6px"><table><thead><tr><th>Check</th><th class="n">Value</th><th class="n">Risk points</th></tr></thead><tbody>${r.comp.map(x=>`<tr><td>${x.k}</td><td class="n">${x.val}</td><td class="n">${x.pts.toFixed(1)} / ${x.w}</td></tr>`).join('')}</tbody></table></div>
+ <p><small>Score = 75% from the checks above (${r.F.toFixed(0)}) + 25% from the nearest presets’ risk (${r.prior.toFixed(0)}). 0 to 30 Pass, 31 to 60 Hold for review, 61 and up Flag. This reads the view-growth shape only. Engagement ratios, sources and the creator’s history still decide the close calls.</small></p></details>`;
+ renderTarget()}
+function h2h(e,c){const G=e.tot,B=e.B,nm=NM[c.g],at=x=>e.hasT?fmtS(new Date((e.O+x*e.Tg)*60000)):'scan '+Math.max(1,Math.round(e.O+x*e.Tg+1)),pc=x=>Math.round(x*100)+'%';
+ const pts=d=>(d>=0?'+':'−')+Math.abs(d*100).toFixed(1)+' pts',cls=d=>Math.abs(d)<0.02?'':d>0?'pos':'neg';
+ const tips=[];c.runs.filter(r=>Math.abs(r.d)>=0.03).slice(0,5).forEach(r=>tips.push(`<b>${at(r.a/12)} to ${at(r.b/12)}</b> (${pc(r.a/12)} to ${pc(r.b/12)} of growth): the clipper added ${nf(r.c*G)} views, ${nm} adds ${nf(r.p*G)}. ${r.d<0?'Short':'Over'} by ${nf(Math.abs(r.d)*G)} (${pts(r.d)}). ${r.d<0?'Views arrive too slowly here.':'Views arrive too fast here.'}`));
+ const s10=c.cps[0];if(Math.abs(s10.c-s10.p)>=0.03)tips.push(`<b>Start:</b> by ${at(.1)} the clipper has ${pc(s10.c)} of its growth; ${nm} has ${pc(s10.p)}. ${s10.c<s10.p?'Slower start than the preset.':'Faster start than the preset.'}`);
+ if(c.cross.length)tips.push(`<b>Crossings:</b> the lines cross ${c.cross.length} time${c.cross.length>1?'s':''}, at ${c.cross.slice(0,6).map(x=>at(x)).join(', ')}${c.cross.length>6?' and more':''}. At each one the clipper switches between ahead and behind.`);
+ if(e.still)tips.push(`<b>End:</b> the clipper is still gaining views at the last scan, so growth may not be finished. Compare again once it levels off.`);
+ if(!tips.length)tips.push(`No stretch differs by 3 points or more. This graph already follows ${nm} closely.`);
+ return`<h2>Head to head: clipper vs ${nm}</h2>
+ <p>Shape match <b>${c.match}%</b> · average gap <b>${(c.mad*100).toFixed(1)} pts</b> · biggest gap <b>${nf(Math.abs(c.mx)*G)} views ${c.mx<0?'behind':'ahead'}</b> (${pts(c.mx)}) at ${at(c.mxx)} · the clipper is ahead of ${nm} ${pc(c.ahead)} of the time.<br><small>1 pt = 1% of the ${nf(G)} growth views (${nf(G/100)} views). Both graphs are lined up so growth starts and reaches 99.5% at the same moments.</small></p>
+ <h2 style="margin-top:12px">Breaking points</h2><ul>${tips.map(t=>'<li>'+t+'</li>').join('')}</ul>
+ <h2 style="margin-top:12px">Checkpoints</h2><div class="tw"><table><thead><tr><th>Point in growth</th><th>Time</th><th class="n">Clipper total</th><th class="n">${nm} total</th><th class="n">Difference</th></tr></thead><tbody>
+ ${c.cps.map(q=>`<tr><td>${pc(q.x)}</td><td>${at(q.x)}</td><td class="n">${nf(B+q.c*G)}</td><td class="n">${nf(B+q.p*G)}</td><td class="n ${cls(q.c-q.p)}">${(q.c>=q.p?'+':'−')+nf(Math.abs(q.c-q.p)*G)} (${pts(q.c-q.p)})</td></tr>`).join('')}</tbody></table></div>
+ <h2 style="margin-top:12px">Phase by phase (12 equal slices of growth time)</h2><div class="tw"><table><thead><tr><th>Phase</th><th>Time window</th><th class="n">Clipper +views</th><th class="n">${nm} +views</th><th class="n">Difference</th></tr></thead><tbody>
+ ${c.ph.map((q,k)=>`<tr><td>${k+1}</td><td>${at(q.a)} to ${at(q.b)}</td><td class="n">${nf(q.c*G)}</td><td class="n">${nf(q.p*G)}</td><td class="n ${cls(q.c-q.p)}">${(q.c>=q.p?'+':'−')+nf(Math.abs(q.c-q.p)*G)} (${pts(q.c-q.p)})</td></tr>`).join('')}</tbody></table></div>`}
+function renderTarget(){const e=window._exr;if(!e||!$('tsec'))return;const nm=NM[tgt],tw=tweak(e,tgt,TW),txt=logText(tw,TW.fmt);
+ const chk=score(parse(txt),{base:!!e.first}),keep=TW.mode!='even'||!e.hasT,moved=keep?tw.reduce((s,r)=>s+(r.o!=null&&!r.base?Math.abs(r.v-r.o):0),0)/2:null;
+ const big=keep?tw.filter(r=>!r.base&&r.o!=null).map(r=>({r,d:r.v-r.o})).sort((a,b)=>Math.abs(b.d)-Math.abs(a.d)).slice(0,3):[];
+ const tm=r=>r.t!=null?fmtS(new Date(r.t*60000)):'';
+ $('tsec').innerHTML=`<h2>Target log: this clip reshaped to follow ${nm}</h2>
+ <small>Same total views and the same growth time as the clipper’s log, with views placed so the running total follows ${nm} exactly. Use it as the reference for what this clip would look like on that preset.</small>
+ <div class="ctl" style="margin-top:10px"><label>Scan times<select id="tmode"><option value="keep">Keep the clipper’s scan times</option><option value="even"${e.hasT?'':' disabled'}>Even interval</option></select></label>
+ <label>Interval (minutes)<input id="tm" type="number" min="1" max="720" value="${TW.m}"${TW.mode=='even'&&e.hasT?'':' disabled'}></label>
+ <label>Output layout<select id="tfmt"><option value="block">Block (your tracker)</option><option value="line">One line per scan</option></select></label>
+ <label class="ck"><span><input type="checkbox" id="tdrop"${TW.drop?' checked':''}> Drop +0 scans</span><small>Your tracker never logs +0. Dropping them hides flat stretches, so staircase-type shapes look like slow ramps.</small></label></div>
+ <p>${keep?`To match ${nm}, <b>${nf(moved)} views</b> move between scans. Biggest changes: ${big.map(b=>`scan ${b.r.i} ${tm(b.r)} ${b.d>0?'+':'−'}${nf(Math.abs(b.d))}`).join(', ')}.<br>`:''}Check: this target log scores <b>${chk.err?'n/a':chk.match[tgt]+'%'}</b> shape match to ${nm} in this tool${chk.err?'':`, bot score ${chk.bot} (${chk.tier})`}.${!chk.err&&chk.match[tgt]<80&&TW.drop?` <b class="neg">Dropping +0 scans removes the flat stretches this preset needs. Untick “Drop +0 scans” for a faithful target.</b>`:''}</p>
+ <div class="tw"><table><thead><tr><th class="n">Scan</th><th>Time</th>${keep?'<th class="n">Clipper +views</th>':''}<th class="n">Target +views</th>${keep?'<th class="n">Change</th>':''}<th class="n">Target total</th></tr></thead><tbody>
+ ${tw.map(r=>{const d=r.o!=null?r.v-r.o:0;return`<tr><td class="n">${r.i}</td><td>${tm(r)}</td>${keep?`<td class="n">${r.o!=null?nf(r.o):''}</td>`:''}<td class="n">${nf(r.v)}</td>${keep?`<td class="n ${r.base||Math.abs(d)<1?'':d>0?'pos':'neg'}">${r.base?'starting count':(d>0?'+':d<0?'−':'')+nf(Math.abs(d))}</td>`:''}<td class="n">${nf(r.c)}</td></tr>`}).join('')}</tbody></table></div>
+ <textarea id="tout" readonly spellcheck="false">${txt}</textarea>
+ <div class="btns"><button class="b" id="tcopy">Copy target log</button><button class="b alt" id="tdl">Download .txt</button><span id="tst" style="color:var(--mut);font-size:13px"></span></div>
+ <small>Synthetic reference built by this tool. It is not real view data; don’t present it as evidence.</small>`;
+ $('tmode').value=keep?'keep':'even';$('tfmt').value=TW.fmt;
+ $('tmode').onchange=()=>{TW.mode=$('tmode').value;renderTarget()};$('tm').onchange=()=>{TW.m=Math.min(720,Math.max(1,+$('tm').value||20));renderTarget()};
+ $('tfmt').onchange=()=>{TW.fmt=$('tfmt').value;renderTarget()};$('tdrop').onchange=()=>{TW.drop=$('tdrop').checked;renderTarget()};
+ $('tcopy').onclick=()=>{const t=$('tout');(navigator.clipboard?navigator.clipboard.writeText(t.value):Promise.reject()).then(()=>$('tst').textContent='Copied.',()=>{t.select();document.execCommand('copy');$('tst').textContent='Copied.'})};
+ $('tdl').onclick=()=>dl(txt,'target_'+nm.replace(/ /g,'_')+'.txt','text/plain')}
+$('score').onclick=doScore;addEventListener('resize',render);matchMedia('(prefers-color-scheme:dark)').addEventListener('change',render);
+sync();tab(0);
+</script></body></html>
