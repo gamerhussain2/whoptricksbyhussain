@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Scan simulator and graph risk tester</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600&display=swap">
+<style>
+:root{--bg:#f3f5f8;--panel:#fff;--ink:#14213d;--mut:#5b6678;--grid:#dde2ea;--line:#c8cfdb;--acc:#14213d;--accfg:#fff;--ok:#14946a;--md:#c77a14;--hi:#d4434b;--c1:#2f6fed;--c2:#14946a;--c3:#d9822b;--c4:#9b4fd0;--c5:#d4434b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1522;--panel:#16203a;--ink:#e8edf7;--mut:#9aa6bd;--grid:#26324f;--line:#33415f;--acc:#e8edf7;--accfg:#0e1522;--ok:#3fcf9f;--md:#f0a458;--hi:#ff7b83;--c1:#6b9bff;--c2:#3fcf9f;--c3:#f0a458;--c4:#c08ae8;--c5:#ff7b83;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1522;--panel:#16203a;--ink:#e8edf7;--mut:#9aa6bd;--grid:#26324f;--line:#33415f;--acc:#e8edf7;--accfg:#0e1522;--ok:#3fcf9f;--md:#f0a458;--hi:#ff7b83;--c1:#6b9bff;--c2:#3fcf9f;--c3:#f0a458;--c4:#c08ae8;--c5:#ff7b83;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Instrument Sans",system-ui,sans-serif}
+main{max-width:940px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:24px;margin:0 0 4px}
+p.lede{margin:0 0 14px;color:var(--mut);max-width:66ch}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tabs button{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 12px;border-radius:8px;font:inherit;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+label{display:flex;flex-direction:column;font-size:13px;color:var(--mut);gap:3px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%}
+textarea{font:12.5px/1.45 ui-monospace,Menlo,monospace;min-height:150px}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+button.b{font:inherit;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid var(--acc);background:var(--acc);color:var(--accfg)}
+button.b.alt{background:transparent;color:var(--ink);border-color:var(--line)}
+#status{color:var(--mut);font-size:13px}
+canvas{width:100%;display:block}
+h2{font-size:14px;margin:0 0 6px;font-weight:600}
+.tw{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:5px 10px;text-align:left;border-bottom:1px solid var(--grid)}
+th{position:sticky;top:0;background:var(--panel)}
+.n{text-align:right}
+.leg,.chk{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;margin-top:8px}
+.leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+.chk label{flex-direction:row;align-items:center;gap:6px;color:var(--ink)}
+.chk input{width:auto}
+small{color:var(--mut)}
+.score{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.big{font-size:52px;font-weight:600;line-height:1}
+.tag{display:inline-block;padding:3px 10px;border-radius:6px;font-weight:600;color:#fff}
+ul.fl{margin:8px 0 0;padding-left:18px}
+ul.fl li{margin:3px 0}
+</style></head><body><main>
+<h1>Scan simulator and graph risk tester</h1>
+<p class="lede">Run the five preset shapes through a scanner, then paste a clipper’s scan log and see how close it sits to each preset, with a bot score and flags.</p>
+<div class="tabs" id="tabs" role="tablist"></div>
+<div class="panel" id="ctlpanel">
+<div class="ctl">
+<label>Scans<input id="n" type="number" min="10" max="1500"></label>
+<label>Interval (minutes)<input id="m" type="number" min="5" max="720"></label>
+<label>Total views<select id="tot"><option value="5000">5,000</option><option value="10000">10,000</option></select></label>
+<label>Growth window<select id="win"><option value="0">Whole run</option><option value="720">12 hours</option><option value="1440">1 day</option><option value="4320">3 days</option><option value="10080">7 days</option><option value="21600">15 days</option></select></label>
+<label>Scan noise (%)<input id="noise" type="number" min="0" max="30"></label>
+<label>First scan at<input id="start" type="datetime-local" value="2026-10-03T01:38"></label>
+</div>
+<div class="btns"><button class="b" id="run">Run scanner</button><button class="b alt" id="inst">Show all scans</button><button class="b alt" id="csv">Download CSV</button><span id="status"></span></div>
+<small>Choosing a growth window sets the run to the window plus 25% plateau. Views are flat after the window ends.</small>
+</div>
+<div class="panel" id="tp" style="display:none">
+<h2>Test a clipper’s graph</h2>
+<small>Paste one scan per line: scan number, views added, time captured (for example <code>12, 148, Nov 20, 08:34 AM</code>). Header lines are ignored.</small>
+<textarea id="paste" spellcheck="false" placeholder="SCANS, views add recorded, time captured&#10;1, 500, Nov 20, 01:38 AM&#10;2, 120, Nov 20, 01:40 AM"></textarea>
+<div class="btns"><button class="b" id="score">Score this graph</button>
+<select id="smp" style="width:auto"><option value="">Fill a test sample…</option></select><button class="b alt" id="clr">Clear</button></div>
+<div class="chk" id="chk"></div>
+<div id="res" style="margin-top:14px"></div>
+</div>
+<div class="panel"><h2 id="t1">Cumulative views</h2><canvas id="c1" height="270"></canvas><div class="leg" id="leg"></div></div>
+<div class="panel" id="p2"><h2 id="t2">Views added per scan</h2><canvas id="c2" height="170"></canvas></div>
+<div class="panel" id="p3"><h2>Scan log</h2><div class="tw"><table><thead><tr><th class="n">SCANS</th><th class="n">views add recorded</th><th>time captured</th><th class="n">cumulative views</th></tr></thead><tbody id="tb"></tbody></table></div>
+<small>Synthetic practice data from a simulator. Not real campaign activity; don’t use it as evidence.</small></div>
+</main>
+<script>
+/*PURE*/
+const NM=['straightguy','perfectcurve','staircase','imperfect curve','climbing line'];
+const P=[[0,1200,2300,3300,4200,5100,5900,6700,7400,8000,8600,9100,9500],[0,3000,5200,6600,7500,8100,8600,9100,9500,9750,9900,9980,10050],[0,0,3000,3000,3000,6500,6500,6500,10000,10000,10000,10000,10000],[0,2200,3800,4800,5500,6000,6300,8300,8700,8950,9150,9300,9400],[0,900,1800,2000,3100,4200,4400,5600,6700,6900,8000,9100,10000]];
+const PRIOR=[70,8,95,40,80];
+const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const clip=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)),mean=a=>a.length?a.reduce((s,v)=>s+v,0)/a.length:0;
+const med=a=>{const s=[...a].sort((x,y)=>x-y),k=s.length>>1;return s.length%2?s[k]:(s[k-1]+s[k])/2};
+function prng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){return Math.sqrt(-2*Math.log(1-r()))*Math.cos(6.2832*r())}
+function fmt(d){let h=d.getHours(),ap=h>=12?'PM':'AM';h=h%12||12;const z=x=>String(x).padStart(2,'0');return MO[d.getMonth()]+' '+z(d.getDate())+', '+z(h)+':'+z(d.getMinutes())+' '+ap}
+function sim(g,c,t0){const{n,m,tot,noise,win}=c,p=P[g],fin=p[12],W=win?Math.min(win,n*m):n*m;
+ const cum=k=>{const f=Math.min(1,k*m/W)*12,i=Math.min(11,Math.floor(f));return tot*(p[i]+(p[i+1]-p[i])*(f-i))/fin};
+ let raw=[];for(let k=1;k<=n;k++)raw.push(cum(k)-cum(k-1));
+ const r=prng(g*7919+n*31+m);if(noise>0)raw=raw.map(v=>v>0?v*Math.max(0,1+noise/100*gauss(r)):0);
+ const s=mean(raw)*n;raw=raw.map(v=>v*tot/s);const fl=raw.map(Math.floor);let rem=tot-fl.reduce((a,b)=>a+b,0);
+ raw.map((v,i)=>[v-fl[i],i]).sort((a,b)=>b[0]-a[0]).slice(0,rem).forEach(x=>fl[x[1]]++);
+ let cu=0;return fl.map((v,i)=>{cu+=v;return{i:i+1,v,c:cu,t:new Date(t0+i*m*60000)}})}
+function parse(txt){const rows=[];const re=/^\s*(\d+)[\s,;\t]+(\d+)(?:[\s,;\t]+(.+?))?\s*$/;
+ txt.split(/\r?\n/).forEach(l=>{const q=re.exec(l);if(!q)return;let t=null;if(q[3]){const s=q[3].replace(/["']/g,''),a=/([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2}),?\s+(\d{1,2}):(\d{2})\s*([AaPp][Mm])?/.exec(s);
+  if(a){let h=+a[3]%12;if(a[5]&&/p/i.test(a[5]))h+=12;if(!a[5])h=+a[3];t=new Date(2026,MO.findIndex(x=>x.toLowerCase()==a[1].toLowerCase()),+a[2],h,+a[4]).getTime()/60000}else{const d=Date.parse(s);if(!isNaN(d))t=d/60000}}
+  rows.push({i:+q[1],v:+q[2],t})});return rows}
+function score(rows){
+ const flags=[],comp=[];let n=rows.length;if(n<8)return{err:'Need at least 8 scans to score a graph.'};
+ const hasT=rows.every(r=>r.t!==null);let ooo=0,dup=0;
+ if(hasT){for(let i=1;i<n;i++){if(rows[i].t<rows[i-1].t)ooo++;if(rows[i].t==rows[i-1].t)dup++}rows=[...rows].sort((a,b)=>a.t-b.t||a.i-b.i)}
+ const t=hasT?rows.map(r=>r.t-rows[0].t):rows.map((r,i)=>i);
+ const gaps=t.map((x,i)=>i?Math.max(x-t[i-1],0.5):0),g=med(gaps.slice(1))||1;gaps[0]=g;
+ const v=rows.map(r=>r.v);let cu=0;const c=v.map(x=>cu+=x),tot=cu,T=t[n-1];
+ if(tot<=0)return{err:'Total views is zero.'};
+ const ge=Math.max(0,c.findIndex(x=>x>=0.995*tot)),na=Math.max(ge+1,Math.min(n,6)),tail=n-na,Tg=t[ge],u=t.map(x=>Math.min(1,(x+g)/(Tg+g)));
+ const at=x=>{let j=0;while(j<n-1&&u[j+1]<x)j++;const x0=j==0?0:u[j-1],y0=j==0?0:c[j-1]/tot,x1=u[j],y1=c[j]/tot;return x1>x0?y0+(y1-y0)*clip((x-x0)/(x1-x0)):y1},half=at(0.5);
+ const va=v.slice(0,na),r=va.map((x,i)=>x/gaps[i]),th=Math.max(1,Math.floor(na/3)),q=Math.max(1,Math.floor(na/4));
+ const mv=mean(va);
+ const R=mean(r.slice(0,th))>0?mean(r.slice(-th))/mean(r.slice(0,th)):1;
+ const Q2=mean(r.slice(q,2*q)),acc=Q2>0?mean(r.slice(3*q))/Q2:1;
+ const endR=mean(r)>0?mean(r.slice(-5))/mean(r):0;
+ const zero=va.filter(x=>x<0.1*mv).length/na;
+ const qq=va.map((x,i)=>{const m=med(va.slice(Math.max(0,i-2),i+3));return m>0?x/m:null}).filter(x=>x!==null);
+ const mq=mean(qq),cv=mq>0?Math.sqrt(mean(qq.map(x=>(x-mq)**2)))/mq:0;
+ const mx=Math.max(...v)/tot;
+ const w=Math.max(3,Math.round(na*0.08));let surge=0;
+ for(let j=Math.max(w,Math.floor(na*0.25));j+w<=na;j+=1){const a=mean(r.slice(j,j+w)),b=mean(r.slice(j-w,j));surge=Math.max(surge,a/(b+0.02*mean(r)))}
+ const bad=ooo+dup;
+ const add=(k,val,s,w8,txt)=>{comp.push({k,val,s,w:w8,pts:s*w8});if(s>=0.35)flags.push({s,t:txt})};
+ add('Curve bend (share of views by mid-growth)',(half*100).toFixed(0)+'%',clip((0.74-half)/0.2),24,'Almost straight: only '+Math.round(half*100)+'% of views arrive by the halfway point of growth. Healthy curves are usually above 75%.');
+ add('Decay (late rate ÷ early rate)',R.toFixed(2),clip((R-0.4)/0.6),14,'No decay: the late rate is '+Math.round(R*100)+'% of the early rate. Healthy reels usually fall below 40%.');
+ add('Late acceleration',acc.toFixed(2),clip((acc-1.2)/0.8),4,'Growth speeds up late (last quarter is '+acc.toFixed(1)+'× the second quarter).');
+ add('Stops at full speed',tail>=3?endR.toFixed(2):'n/a',tail>=3?clip((endR-0.5)/0.5):0,10,'Views stop dead while the rate is still '+Math.round(endR*100)+'% of average. Organic growth tapers before it stops.');
+ add('Batch gaps (share of near-zero scans)',(zero*100).toFixed(0)+'%',clip((zero-0.1)/0.3),14,Math.round(zero*100)+'% of growth scans add almost nothing, which suggests views arriving in batches.');
+ add('Too uniform (scan-to-scan variation)',cv.toFixed(2),clip((0.3-cv)/0.25),6,'Scan-to-scan variation is unusually low ('+cv.toFixed(2)+'). Real audiences are lumpier.');
+ add('Single-scan spike (share of total)',(mx*100).toFixed(1)+'%',clip((mx-0.12)/0.2),6,'One scan holds '+(mx*100).toFixed(0)+'% of all views.');
+ add('Sudden surge after slow stretch',surge.toFixed(1)+'×',clip((surge-2)/3),16,'A late surge runs at '+surge.toFixed(1)+'× the rate just before it, with no taper into it.');
+ add('Tracker integrity (order and duplicates)',bad+' issue'+(bad==1?'':'s'),clip(bad/(0.1*n)),6,bad+' timestamp problem(s): scans out of order or sharing a time. A tracker that misses nothing should not do this.');
+ const F=comp.reduce((s,x)=>s+x.pts,0);
+ const pz=P.map(p=>{const e=p.findIndex(x=>x>=0.995*p[12]),dl=p.slice(1,e+1).map((x,i)=>x-p[i]),mn=mean(dl);return dl.filter(x=>x<0.1*mn).length/dl.length}),L=50,dist=P.map((p,pi)=>{let d=0;for(let k=0;k<L;k++){const x=(k+0.5)/L,f=x*12,i=Math.min(11,Math.floor(f)),pv=(p[i]+(p[i+1]-p[i])*(f-i))/p[12];
+  d+=Math.abs(at(x)-pv)}return d/L+0.4*Math.abs(zero-pz[pi])});
+ const ws=dist.map(d=>Math.exp(-d/0.04)),sw=ws.reduce((a,b)=>a+b,0),prior=ws.reduce((s,x,i)=>s+x/sw*PRIOR[i],0);
+ const bot=Math.round(clip((0.75*F+0.25*prior)/100,0,1)*100),span=T/60;
+ let tier=bot<=30?'Low':bot<=60?'Medium':bot<=85?'High':'Critical',act=bot<=30?'Pass':bot<=60?'Hold for review':'Flag';
+ const prov=(hasT&&span<12)||n<15;if(prov){flags.push({s:0.3,t:'Provisional: under '+(n<15?'15 scans':'12 hours')+' of data. Judge again at 48 hours or more.'});if(act=='Pass')act='Hold (too early)'}
+ flags.sort((a,b)=>b.s-a.s);
+ return{bot,tier,act,flags,comp,F,prior,match:dist.map(d=>Math.round(100*clip(1-d/0.3))),dist,near:dist.indexOf(Math.min(...dist)),u,c,tot,v,n,span,tail,na,hasT}}
+/*ENDPURE*/
+const $=id=>document.getElementById(id),css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim(),col=g=>css('--c'+(g+1));
+const S=[[46,25],[48,26],[56,29],[50,27],[52,28]].map(a=>({n:a[0],m:a[1],tot:10000,noise:8,win:0}));
+let cur=0,timer=null,shown=0,rows=[],sel=[1,1,1,1,1];
+const t0=()=>new Date($('start').value).getTime();
+function dur(min){return min<2880?(min/60).toFixed(min%60?1:0)+' h':(min/1440).toFixed(1)+' d'}
+function setup(c){const dpr=devicePixelRatio||1,w=c.clientWidth,h=+c.getAttribute('height');c.width=w*dpr;c.height=h*dpr;const x=c.getContext('2d');x.scale(dpr,dpr);x.clearRect(0,0,w,h);return[x,w,h]}
+function axes(x,w,h,L,B,ymax,xl,pc){x.font='12px system-ui,sans-serif';x.fillStyle=css('--mut');x.strokeStyle=css('--grid');x.lineWidth=1;
+ for(let i=0;i<=4;i++){const y=h-B-(h-B-10)*i/4;x.beginPath();x.moveTo(L,y);x.lineTo(w-10,y);x.stroke();x.textAlign='right';x.fillText(pc?Math.round(i*25)+'%':Math.round(ymax*i/4).toLocaleString(),L-6,y+4)}
+ x.textAlign='center';xl.forEach(a=>x.fillText(a[1],L+(w-L-10)*a[0],h-8))}
+function lineChart(c,series,xmax,ymax,xl,pc){const[x,w,h]=setup(c),L=54,B=26;axes(x,w,h,L,B,ymax,xl,pc);
+ series.forEach(s=>{x.strokeStyle=s.c;x.lineWidth=s.w||2.2;x.beginPath();s.pts.forEach((p,i)=>{const X=L+(w-L-10)*p[0]/xmax,Y=h-B-(h-B-10)*p[1]/ymax;i?x.lineTo(X,Y):x.moveTo(X,Y)});x.stroke()})}
+function bars(c,v,j,color,lab){const[x,w,h]=setup(c),L=54,B=26,n=v.length,mx=Math.max(...v,1)*1.1;axes(x,w,h,L,B,mx,[[0,'scan 1'],[1,'scan '+n]]);
+ const bw=(w-L-10)/n;x.fillStyle=color;v.slice(0,j).forEach((q,i)=>{const bh=(h-B-10)*q/mx;x.fillRect(L+i*bw+(bw>3?1:0),h-B-bh,Math.max(1,bw-(bw>3?2:0)),bh)})}
+const ST=['Presets','All presets','Test a clipper’s graph'];
+function show(mode){const p=mode=='preset';$('ctlpanel').style.display=p?'':'none';$('p3').style.display=p?'':'none';$('p2').style.display=mode=='all'?'none':'';$('tp').style.display=mode=='test'?'':'none'}
+function overlay(extra){const sr=[];P.forEach((p,g)=>{if(sel[g]||extra===undefined)sr.push({c:col(g),w:1.8,pts:p.map((y,k)=>[k/12,y/p[12]])})});if(extra)sr.push({c:css('--ink'),w:3.4,pts:extra});
+ lineChart($('c1'),sr,1,1,[[0,'0%'],[.25,'25%'],[.5,'50%'],[.75,'75%'],[1,'100%']],true);
+ $('leg').innerHTML=P.map((p,g)=>(sel[g]||extra===undefined)?`<span><i style="background:${col(g)}"></i>${NM[g]}</span>`:'').join('')+(extra?`<span><i style="background:${css('--ink')}"></i>clipper</span>`:'')}
+function render(){
+ if(cur==5){show('all');$('t1').textContent='All presets: share of run vs share of final views';overlay();return}
+ if(cur==6){show('test');$('t1').textContent='Clipper graph vs selected presets (share of run vs share of final views)';overlay(window._ex);return}
+ show('preset');$('t1').textContent=NM[cur]+': cumulative views';$('leg').innerHTML='';$('t2').textContent='Views added per scan';
+ const n=rows.length,tot=S[cur].tot,j=shown,run=n*S[cur].m;
+ lineChart($('c1'),[{c:col(cur),pts:[[0,0]].concat(rows.slice(0,j).map(q=>[q.i,q.c]))}],n,tot*1.05,[[0,'0'],[.5,dur(run/2)],[1,dur(run)]]);
+ bars($('c2'),rows.map(q=>q.v),j,col(cur));
+ $('tb').innerHTML=rows.slice(0,j).map(q=>`<tr><td class="n">${q.i}</td><td class="n">${q.v}</td><td>${fmt(q.t)}</td><td class="n">${q.c.toLocaleString()}</td></tr>`).join('');
+ const tw=document.querySelector('.tw');tw.scrollTop=tw.scrollHeight}
+function load(){const s=S[cur];$('n').value=s.n;$('m').value=s.m;$('tot').value=s.tot;$('noise').value=s.noise;$('win').value=s.win}
+function read(){const s=S[cur],cl=(v,a,b)=>Math.min(b,Math.max(a,+v||a));s.n=cl($('n').value,10,1500);s.m=cl($('m').value,5,720);s.tot=+$('tot').value;s.noise=cl($('noise').value,0,30);s.win=+$('win').value}
+function prep(){clearInterval(timer);read();rows=sim(cur,S[cur],t0())}
+function info(){const s=S[cur];$('status').textContent=rows.length+' scans, '+s.m+' min apart, '+dur(rows.length*s.m)+(s.win&&s.win<rows.length*s.m?'; growth ends at '+dur(s.win)+', then plateau':'')}
+function instant(){prep();shown=rows.length;info();render()}
+function run(){prep();shown=0;render();const step=Math.max(1,Math.ceil(rows.length/60));timer=setInterval(()=>{shown=Math.min(rows.length,shown+step);$('status').textContent='Scan '+shown+' of '+rows.length+' · '+fmt(rows[shown-1].t);render();if(shown>=rows.length){clearInterval(timer);info()}},70)}
+function tab(i){clearInterval(timer);cur=i;[...$('tabs').children].forEach((b,k)=>b.setAttribute('aria-selected',k==i));if(i<5){load();instant()}else render()}
+[...NM,'All presets','Test a clipper’s graph'].forEach((t,i)=>{const b=document.createElement('button');b.textContent=t;b.setAttribute('role','tab');b.onclick=()=>tab(i);$('tabs').appendChild(b)});
+$('win').onchange=()=>{const s=S[cur],w=+$('win').value;if(w){let run=w*1.25,m=+$('m').value||25,n=Math.round(run/m);if(n>1500){m=Math.ceil(run/1500);n=Math.round(run/m)}$('m').value=m;$('n').value=Math.max(10,n)}instant()};
+$('run').onclick=run;$('inst').onclick=instant;
+$('csv').onclick=()=>{prep();const t='SCANS,views add recorded,time captured\n'+rows.map(q=>[q.i,q.v,'"'+fmt(q.t)+'"'].join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download=NM[cur].replace(/ /g,'_')+'_scans.csv';a.click()};
+['n','m','tot','noise','start'].forEach(id=>$(id).addEventListener('change',instant));
+NM.forEach((n,g)=>{$('chk').insertAdjacentHTML('beforeend',`<label><input type="checkbox" checked data-g="${g}"><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${col(g)}"></i>${n}</label>`);$('smp').insertAdjacentHTML('beforeend',`<option value="${g}">Sample: ${n}</option>`)});
+$('chk').onchange=e=>{sel[+e.target.dataset.g]=e.target.checked?1:0;if(window._ex)doScore()};
+$('smp').onchange=()=>{const g=$('smp').value;if(g==='')return;const r=sim(+g,S[+g],t0());$('paste').value='SCANS, views add recorded, time captured\n'+r.map(q=>[q.i,q.v,fmt(q.t)].join(', ')).join('\n');$('smp').value='';doScore()};
+$('clr').onclick=()=>{$('paste').value='';$('res').innerHTML='';window._ex=null;render()};
+function doScore(){const rw=parse($('paste').value),r=score(rw);if(r.err){$('res').innerHTML='<p>'+r.err+'</p>';return}
+ window._ex=[[0,0]].concat(r.u.map((x,i)=>[x,r.c[i]/r.tot]));render();bars($('c2'),r.v,r.v.length,css('--ink'));$('t2').textContent='Clipper: views added per scan';
+ const colr=r.bot<=30?'--ok':r.bot<=60?'--md':'--hi';
+ $('res').innerHTML=`<div class="score"><div class="big" style="color:var(${colr})">${r.bot}</div><div><span class="tag" style="background:var(${colr})">${r.tier} risk</span> <strong>${r.act}</strong><br><small>Nearest preset: <strong>${NM[r.near]}</strong> (${r.match[r.near]}% shape match) · ${r.n} scans${r.hasT?' over '+dur(r.span*60):', no timestamps'}</small></div></div>
+ <ul class="fl">${r.flags.length?r.flags.map(f=>'<li>'+f.t+'</li>').join(''):'<li>No shape flags triggered.</li>'}</ul>
+ <h2 style="margin-top:14px">Shape match to each preset</h2><div class="tw"><table><tbody>${NM.map((n,g)=>`<tr><td>${n}</td><td class="n">${r.match[g]}%</td></tr>`).join('')}</tbody></table></div>
+ <h2 style="margin-top:14px">How the score was built</h2><div class="tw"><table><thead><tr><th>Check</th><th class="n">Value</th><th class="n">Risk points</th></tr></thead><tbody>${r.comp.map(x=>`<tr><td>${x.k}</td><td class="n">${x.val}</td><td class="n">${x.pts.toFixed(1)} / ${x.w}</td></tr>`).join('')}</tbody></table></div>
+ <p><small>Score = 75% from the checks above (${r.F.toFixed(0)}) + 25% from the nearest presets’ risk (${r.prior.toFixed(0)}). 0 to 30 Pass, 31 to 60 Hold for review, 61 and up Flag. This reads the view-growth shape only. Engagement ratios, sources and the creator’s history still decide the close calls.</small></p>`}
+$('score').onclick=doScore;addEventListener('resize',render);matchMedia('(prefers-color-scheme:dark)').addEventListener('change',render);
+tab(0);
+</script></body></html>
